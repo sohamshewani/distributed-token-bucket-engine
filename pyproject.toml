@@ -1,0 +1,77 @@
+[build-system]
+requires = ["setuptools>=68.0.0", "wheel>=0.40.0", "cmake>=3.25.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "distributed-token-bucket-engine"
+version = "1.0.0"
+description = "A high-performance distributed token bucket rate-limiting engine."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: System :: Distributed Computing",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+    "redis>=4.5.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "benchmark>=0.4.0",
+]
+
+[tool.setuptools]
+packages = ["distributed_token_bucket_engine"]
+
+[tool.setuptools.package-data]
+distributed_token_bucket_engine = ["py.typed"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.black]
+line-length = 88
+target-version = ['py39', 'py310', 'py311', 'py312']
+
+[tool.isort]
+profile = "black"
+line-length = 88
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.custom_targets]
+# Production-grade task definitions consumed by build pipelines
+# Optimization flags applied: -O3, -Wall, -Wextra
+cxx_flags = ["-O3", "-Wall", "-Wextra", "-std=c++17"]
+
+targets = {
+    all = "python -m pip install --upgrade pip && pip install -e .[dev]",
+    build = "if [ -d 'cpp' ]; then mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS='-O3 -Wall -Wextra' .. && cmake --build . --config Release; else echo 'Optional C++ directory missing, skipping build.'; fi",
+    test = "if [ -d 'tests' ]; then pytest; else echo 'Optional tests directory missing, skipping tests.'; fi",
+    clean = "rm -rf build/ dist/ *.egg-info .pytest_cache .mypy_cache __pycache__ $(find . -type d -name '__pycache__') $(find . -type f -name '*.pyc') && if [ -d 'build' ]; then rm -rf build; fi",
+    benchmark = "if [ -d 'benchmarks' ]; then python -m benchmarks.run; elif [ -d 'tests' ] && [ -f 'tests/benchmark.py' ]; then python tests/benchmark.py; else echo 'Optional benchmark targets missing, skipping benchmark.'; fi"
+}
